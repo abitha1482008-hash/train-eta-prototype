@@ -1,364 +1,436 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Train ETA Dashboard</title>
-  <style>
-    :root {
-      --bg: #0b1220;
-      --panel: #111b2e;
-      --line: #22314d;
-      --amber: #f5a623;
-      --green: #3ecf8e;
-      --red: #ef5b5b;
-      --text: #e7ecf5;
-      --muted: #8ea0bd;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Segoe UI", sans-serif;
-      min-height: 100vh;
-    }
-
-    .mono { font-family: "Courier New", monospace; }
-
-    header {
-      padding: 18px 20px 14px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 1.15rem;
-      font-weight: 600;
-    }
-
-    .sub { color: var(--muted); font-size: 0.85rem; }
-
-    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 18px;
-      margin-bottom: 14px;
-    }
-
-    .grid2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 520px) {
-      .grid2 { grid-template-columns: 1fr; }
-    }
-
-    .eta-big {
-      font-size: 2.6rem;
-      font-weight: 700;
-    }
-
-    .label {
-      color: var(--muted);
-      font-size: 0.78rem;
-      margin-bottom: 4px;
-    }
-
-    .delay-pill {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    .delay-ontime {
-      background: rgba(62, 207, 142, 0.15);
-      color: var(--green);
-    }
-
-    .delay-late {
-      background: rgba(239, 91, 91, 0.15);
-      color: var(--red);
-    }
-
-    .trust-track {
-      height: 8px;
-      background: var(--line);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    .trust-fill {
-      height: 100%;
-      background: var(--green);
-      transition: width 0.6s ease, background 0.6s ease;
-    }
-
-    .route {
-      position: relative;
-      padding-left: 26px;
-    }
-
-    .route-line {
-      position: absolute;
-      left: 9px;
-      top: 8px;
-      bottom: 8px;
-      width: 2px;
-      background: var(--line);
-    }
-
-    .stop {
-      position: relative;
-      padding: 10px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .stop::before {
-      content: "";
-      position: absolute;
-      left: -26px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--line);
-      border: 2px solid var(--bg);
-    }
-
-    .stop.done::before { background: var(--muted); }
-    .stop.current::before {
-      background: var(--amber);
-      box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.2);
-    }
-
-    .stop-name { font-weight: 600; font-size: 0.92rem; }
-    .stop-time { color: var(--muted); font-size: 0.8rem; }
-    .stop.current .stop-name { color: var(--amber); }
-
-    .status-dot { color: var(--muted); }
-    .status-dot.live { color: var(--green); }
-
-    .footer-note {
-      color: var(--muted);
-      font-size: 0.75rem;
-      text-align: center;
-      padding: 10px 0 20px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dynamic ETA — Smart Train Companion</title>
+<style>
+:root{
+  --bg:#0b1220; --panel:#111b2e; --line:#22314d;
+  --amber:#f5a623; --green:#3ecf8e; --red:#ef5b5b;
+  --text:#e7ecf5; --muted:#8ea0bd; --fs:1;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:calc(1rem * var(--fs))}
+body.large-text{--fs:1.25}
+.mono{font-family:'Courier New',ui-monospace,monospace}
+header{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
+header h1{font-size:1.1rem;margin:0;font-weight:600}
+.sub{color:var(--muted);font-size:.82em}
+.wrap{max-width:920px;margin:0 auto;padding:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:540px){.grid2{grid-template-columns:1fr}}
+.eta-big{font-size:2.4rem;font-weight:700}
+.label{color:var(--muted);font-size:.78em;margin-bottom:4px}
+.delay-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.85em;font-weight:600}
+.delay-ontime{background:rgba(62,207,142,.15);color:var(--green)}
+.delay-late{background:rgba(239,91,91,.15);color:var(--red)}
+.reason{font-size:.9em;color:var(--amber);margin-top:6px}
+.trust-track{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px}
+.trust-fill{height:100%;background:var(--green);transition:width .6s ease,background .6s ease}
+.spark{display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:8px}
+.spark div{flex:1;background:var(--amber);border-radius:2px 2px 0 0;min-height:2px}
+.topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input,select,button.pill{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:.85em}
+button.pill{cursor:pointer}
+.status-dot{color:var(--muted)}
+.status-dot.live{color:var(--green)}
+/* Journey progress */
+.journey{position:relative;height:60px;margin-top:14px}
+.journey-line{position:absolute;top:28px;left:0;right:0;height:4px;background:var(--line);border-radius:2px}
+.journey-fill{position:absolute;top:28px;left:0;height:4px;background:var(--green);border-radius:2px;transition:width 1s linear}
+.journey-dot{position:absolute;top:20px;width:20px;height:20px;border-radius:50%;background:var(--amber);transform:translateX(-50%);box-shadow:0 0 0 4px rgba(245,166,35,.25);transition:left 1s linear}
+.journey-pt{position:absolute;top:24px;width:12px;height:12px;border-radius:50%;background:var(--muted);transform:translate(-50%,0)}
+.journey-lbl{position:absolute;top:44px;transform:translateX(-50%);font-size:.7em;color:var(--muted);white-space:nowrap}
+/* Route list */
+.route{position:relative;padding-left:26px}
+.route-line{position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.stop{position:relative;padding:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.stop::before{content:'';position:absolute;left:-26px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:var(--line);border:2px solid var(--bg)}
+.stop.done::before{background:var(--muted)}
+.stop.current::before{background:var(--amber);box-shadow:0 0 0 4px rgba(245,166,35,.2)}
+.stop.current .stop-name{color:var(--amber)}
+.stop-name{font-weight:600;font-size:.92em}
+.stop-time{color:var(--muted);font-size:.8em}
+/* Platform / coach */
+.platform{position:relative;background:#0e1830;border:1px solid var(--line);border-radius:8px;height:50px;margin-top:10px;overflow:hidden}
+.platform-track{position:absolute;top:50%;left:0;right:0;height:2px;background:var(--line);transform:translateY(-50%)}
+.coach{position:absolute;top:50%;transform:translate(-50%,-50%);width:34px;height:26px;border-radius:4px;background:var(--line);color:var(--muted);font-size:.68em;display:flex;align-items:center;justify-content:center;font-weight:600}
+.coach.mine{background:var(--amber);color:#1a1200;box-shadow:0 0 0 3px rgba(245,166,35,.25)}
+/* Facilities */
+.facilities{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.facility{display:flex;align-items:center;gap:6px;background:#0e1830;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.82em}
+.facility.na{opacity:.4;text-decoration:line-through}
+/* Toggle switch */
+.switch{position:relative;display:inline-block;width:38px;height:20px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--line);border-radius:20px;transition:.3s}
+.slider::before{content:'';position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.3s}
+input:checked + .slider{background:var(--green)}
+input:checked + .slider::before{transform:translateX(18px);background:#04120a}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(62,207,142,.12);color:var(--green);border-radius:8px;padding:6px 10px;font-size:.85em;font-weight:600}
+.footer-note{color:var(--muted);font-size:.72em;text-align:center;padding:10px 0 24px}
+/* Role toggle + staff view */
+.role-toggle{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:3px}
+.role-toggle button{background:transparent;border:none;color:var(--muted);padding:5px 12px;border-radius:6px;font-size:.82em;cursor:pointer}
+.role-toggle button.active{background:var(--amber);color:#1a1200;font-weight:600}
+[data-role]{display:none}
+body.view-passenger [data-role="passenger"]{display:block}
+body.view-staff [data-role="staff"]{display:block}
+table.fleet{width:100%;border-collapse:collapse;font-size:.85em}
+table.fleet th{text-align:left;color:var(--muted);font-weight:500;padding:6px;border-bottom:1px solid var(--line)}
+table.fleet td{padding:8px 6px;border-bottom:1px solid var(--line)}
+.flag{color:var(--red);font-weight:600}
+.ok-flag{color:var(--green)}
+tr.attention{background:rgba(239,91,91,.06)}
+</style>
 </head>
-
 <body>
-  <header>
-    <div>
-      <h1>Train <span id="trainIdLabel">12951</span> — Live ETA</h1>
-      <div class="sub">
-        Firebase-connected ·
-        <span id="connStatus" class="status-dot">connecting…</span>
-      </div>
+
+<header>
+  <div>
+    <h1 data-i="brand">🚆 Smart ETA Companion</h1>
+    <div class="sub">Train <span id="trainIdLabel">12951</span> · <span data-i="connected">Firebase-connected</span> · <span id="connStatus" class="status-dot">connecting…</span></div>
+  </div>
+  <div class="topbar">
+    <div class="role-toggle">
+      <button id="roleBtnPassenger" class="active" data-i="rolePassenger">Passenger</button>
+      <button id="roleBtnStaff" data-i="roleStaff">Staff</button>
     </div>
+    <input id="trainSearch" placeholder="Enter train no." style="width:110px" />
+    <select id="trainSelect">
+      <option value="12951">12951 — Rajdhani</option>
+      <option value="12009">12009 — Shatabdi</option>
+    </select>
+    <select id="coachSelect">
+      <option value="A1">A1</option><option value="B1">B1</option><option value="B2">B2</option>
+      <option value="S1" selected>S1</option><option value="S5">S5</option><option value="S10">S10</option>
+    </select>
+    <button class="pill" id="langBtn">हिंदी</button>
+    <button class="pill" id="a11yBtn" title="Large text">A+</button>
     <div class="sub mono" id="clock"></div>
-  </header>
+  </div>
+</header>
 
-  <div class="wrap">
-    <div class="grid2">
-      <div class="card">
-        <div class="label">Next station: <span id="nextStationName">—</span></div>
-        <div class="eta-big mono" id="etaTime">--:--</div>
-        <div style="margin-top: 8px;">
-          <span class="delay-pill delay-ontime" id="delayPill">On time</span>
-        </div>
+<div class="wrap">
+
+  <div class="card" data-role="staff">
+    <div class="label" data-i="fleetLbl">Fleet overview — all trains at a glance</div>
+    <table class="fleet" id="fleetTable"><thead><tr>
+      <th>Train</th><th>Next stn</th><th>Delay</th><th>Trust</th><th>Status</th>
+    </tr></thead><tbody id="fleetBody"></tbody></table>
+    <div class="label" style="margin-top:8px" data-i="fleetHint">Rows in red need dispatcher attention (low trust or rising delay)</div>
+  </div>
+
+  <div data-role="passenger">
+  <div class="card">
+    <div class="row">
+      <span class="badge" id="onTimeBadge">📊 --</span>
+      <div class="row" style="gap:8px">
+        <span class="label" style="margin:0" data-i="notifyLbl">Notify on delay change</span>
+        <label class="switch"><input type="checkbox" id="notifyToggle"><span class="slider"></span></label>
       </div>
-
-      <div class="card">
-        <div class="label">ETA Trust Score</div>
-        <div style="display: flex; align-items: baseline; gap: 8px;">
-          <div class="eta-big mono" id="trustScore" style="font-size: 2.1rem;">--</div>
-          <div class="label" style="margin: 0;" id="trustLabel">waiting for data</div>
-        </div>
-        <div class="trust-track">
-          <div class="trust-fill" id="trustFill" style="width: 0%;"></div>
-        </div>
-        <div class="label" style="margin-top: 8px;" id="lastPing">Last GPS ping: —</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="label" style="margin-bottom: 10px;">Route progress</div>
-      <div class="route">
-        <div class="route-line"></div>
-        <div id="routeList"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="label">Live status</div>
-      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); margin-top: 6px;">
-        <span id="speedReadout" class="mono">0 km/h</span>
-        <span id="distReadout" class="mono">0 km to go</span>
-      </div>
-    </div>
-
-    <div class="footer-note">
-      Reads live data from Firebase Realtime Database at
-      <code>trains/&lt;trainId&gt;/live</code>.
     </div>
   </div>
 
-  <script>
-    const trainId = "12951";
-    const dbUrl = `https://train-eta-prototype-default-rtdb.asia-southeast1.firebasedatabase.app/trains/${trainId}.json`;
+  <div class="grid2">
+    <div class="card">
+      <div class="label"><span data-i="nextStn">Next station</span>: <span id="nextStationName">—</span></div>
+      <div class="eta-big mono" id="etaTime">--:-- – --:--</div>
+      <div style="margin-top:8px"><span class="delay-pill delay-ontime" id="delayPill">On time</span></div>
+      <div class="reason" id="delayReason"></div>
+    </div>
+    <div class="card">
+      <div class="label" data-i="trustLbl">ETA Trust Score</div>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <div class="eta-big mono" id="trustScore" style="font-size:2.1rem">--</div>
+        <div class="label" style="margin:0" id="trustLabel">waiting for data</div>
+      </div>
+      <div class="trust-track"><div class="trust-fill" id="trustFill" style="width:0%"></div></div>
+      <div class="label" style="margin-top:8px" id="lastPing">Last GPS ping: —</div>
+      <div class="label" style="margin-top:10px" data-i="trend">Delay trend (last pings)</div>
+      <div class="spark" id="sparkline"></div>
+    </div>
+  </div>
 
-    let route = [];
-    let live = null;
+  <div class="card">
+    <div class="label" data-i="journeyLbl">Journey progress</div>
+    <div class="journey" id="journey"></div>
+  </div>
 
-    function setConnStatus(text, liveState) {
-      const el = document.getElementById("connStatus");
-      el.textContent = text;
-      el.className = "status-dot" + (liveState ? " live" : "");
-    }
+  <div class="card">
+    <div class="label" data-i="platformLbl">Coach position — where <span id="coachLabelInline">S1</span> will stop</div>
+    <div class="platform"><div class="platform-track"></div><div id="platformCoaches"></div></div>
+  </div>
 
-    function fmtClockFromMinutes(minutes) {
-      const target = new Date(Date.now() + minutes * 60000);
-      return target.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
+  <div class="card">
+    <div class="label" data-i="facilitiesLbl">Facilities at <span id="facilityStation">next station</span></div>
+    <div class="facilities" id="facilitiesList"></div>
+  </div>
 
-    function computeETA() {
-      if (!live || !route.length) return null;
+  <div class="card">
+    <div class="label" style="margin-bottom:8px" data-i="routeLbl">Route progress</div>
+    <div class="route"><div class="route-line"></div><div id="routeList"></div></div>
+  </div>
 
-      const currentIndex = Number(live.currentStationIndex || 0);
-      const nextIndex = currentIndex + 1;
+  <div class="footer-note">Simulated live feed for demo. Facilities and on-time % are illustrative sample data — swap for real station/historical databases in production.</div>
+  </div><!-- /data-role=passenger -->
+</div>
 
-      if (nextIndex >= route.length) {
-        return null;
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script>
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCZvkLysdkUJ7DkIQFTGCXckbZbf2mJmVg",
+  authDomain: "train-eta-prototype.firebaseapp.com",
+  databaseURL: "https://train-eta-prototype-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "train-eta-prototype",
+  storageBucket: "train-eta-prototype.firebasestorage.app",
+  messagingSenderId: "82652802658",
+  appId: "1:82652802658:web:df29ef7863828252deab3b",
+  measurementId: "G-PHNVBP9TKK"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let trainId = "12951";
+let route = [], live = null, routeRef, liveRef;
+const delayHistory = [];
+let prevDelay = null;
+
+const coachLayout = ["A1","A2","B1","B2","B3","S1","S2","S3","S4","S5","S6","S7","S8","S9","S10","GEN1"];
+
+// Illustrative sample data — replace with a real facilities DB per station
+const facilitiesDB = {
+  default: { food:true, water:true, wheelchair:false, waiting:true },
+  "Vadodara Jn": { food:true, water:true, wheelchair:true, waiting:true },
+  "Ratlam Jn": { food:true, water:true, wheelchair:false, waiting:false },
+  "Kota Jn": { food:true, water:true, wheelchair:true, waiting:true },
+  "Mathura Jn": { food:false, water:true, wheelchair:false, waiting:true },
+  "New Delhi": { food:true, water:true, wheelchair:true, waiting:true }
+};
+const onTimeStats = { "12951": 82, "12009": 91 };
+const fleetIds = ["12951", "12009"];
+
+document.getElementById('roleBtnPassenger').onclick = () => setRole('passenger');
+document.getElementById('roleBtnStaff').onclick = () => setRole('staff');
+function setRole(role){
+  document.body.className = document.body.className.replace(/view-\w+/,'').trim();
+  document.body.classList.add('view-'+role);
+  document.getElementById('roleBtnPassenger').classList.toggle('active', role==='passenger');
+  document.getElementById('roleBtnStaff').classList.toggle('active', role==='staff');
+  if(role==='staff') renderFleet();
+}
+setRole('passenger');
+
+function renderFleet(){
+  const tbody = document.getElementById('fleetBody');
+  tbody.innerHTML = fleetIds.map(id => `<tr id="fleet-row-${id}"><td>${id}</td><td colspan="4" class="sub">loading…</td></tr>`).join('');
+  fleetIds.forEach(id => {
+    db.ref(`trains/${id}/live`).once('value').then(snap => {
+      const d = snap.val();
+      const row = document.getElementById(`fleet-row-${id}`);
+      if(!row) return;
+      if(!d){
+        row.innerHTML = `<td>${id}</td><td colspan="4" class="sub">no live data</td>`;
+        return;
       }
+      const pingAge = Math.round((Date.now()-d.lastPingTimestamp)/1000);
+      const trust = trustScoreFor(pingAge, d.speedKmh);
+      const delay = d.delayMin || 0;
+      const attention = trust < 40 || delay > 15;
+      row.className = attention ? 'attention' : '';
+      row.innerHTML = `<td>${id}</td><td>${d.currentStationIndex}</td>
+        <td>${delay} min</td><td>${trust}</td>
+        <td class="${attention?'flag':'ok-flag'}">${attention?'⚠ Needs attention':'✓ Normal'}</td>`;
+    });
+  });
+}
+setInterval(() => { if(document.body.classList.contains('view-staff')) renderFleet(); }, 5000);
 
-      const currentStation = route[currentIndex];
-      const nextStation = route[nextIndex];
-      const progressKm = Number(live.progressKm || 0);
-      const speedKmh = Number(live.speedKmh || 1);
-      const delayMin = Number(live.delayMin || 0);
+const i18n = {
+  en:{brand:"🚆 Smart ETA Companion",connected:"Firebase-connected",trustLbl:"ETA Trust Score",
+      trend:"Delay trend (last pings)",journeyLbl:"Journey progress",
+      platformLbl:"Coach position — where ", facilitiesLbl:"Facilities at ",
+      routeLbl:"Route progress", nextStn:"Next station", notifyLbl:"Notify on delay change",
+      rolePassenger:"Passenger", roleStaff:"Staff", fleetLbl:"Fleet overview — all trains at a glance",
+      fleetHint:"Rows in red need dispatcher attention (low trust or rising delay)"},
+  hi:{brand:"🚆 स्मार्ट ETA साथी",connected:"Firebase से जुड़ा",trustLbl:"ETA विश्वास स्कोर",
+      trend:"देरी का रुझान",journeyLbl:"यात्रा प्रगति",
+      platformLbl:"कोच की स्थिति — यहाँ रुकेगा ", facilitiesLbl:"सुविधाएं — ",
+      routeLbl:"मार्ग प्रगति", nextStn:"अगला स्टेशन", notifyLbl:"देरी बदलने पर सूचित करें",
+      rolePassenger:"यात्री", roleStaff:"स्टाफ", fleetLbl:"फ्लीट अवलोकन — सभी ट्रेनें एक नज़र में",
+      fleetHint:"लाल पंक्तियों पर ध्यान देने की आवश्यकता है"}
+};
+let lang = "en";
+document.getElementById('langBtn').onclick = () => {
+  lang = lang === "en" ? "hi" : "en";
+  document.getElementById('langBtn').textContent = lang === "en" ? "हिंदी" : "English";
+  applyI18n(); render();
+};
+function applyI18n(){
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const k = el.getAttribute('data-i');
+    if(i18n[lang][k]) el.textContent = i18n[lang][k];
+  });
+}
+applyI18n();
 
-      const segmentStartKm = Number(currentStation.distanceKm || 0);
-      const segmentEndKm = Number(nextStation.distanceKm || 0);
-      const coveredInSegment = Math.max(0, progressKm - segmentStartKm);
-      const remainingKm = Math.max(segmentEndKm - progressKm, 0.5);
+document.getElementById('a11yBtn').onclick = () => document.body.classList.toggle('large-text');
 
-      const etaMin = (remainingKm / Math.max(speedKmh, 1)) * 60 + delayMin;
+document.getElementById('notifyToggle').onchange = e => {
+  if(e.target.checked && "Notification" in window) Notification.requestPermission();
+};
 
-      return {
-        nextIndex,
-        nextStationName: nextStation.name,
-        etaMin,
-        remainingKm,
-        totalDistanceKm: Number(route[route.length - 1].distanceKm || 0),
-        progressKm
-      };
+document.getElementById('trainSearch').addEventListener('keydown', e => {
+  if(e.key === "Enter" && e.target.value.trim()){
+    trainId = e.target.value.trim();
+    attachListeners(trainId);
+  }
+});
+
+function attachListeners(id){
+  if(routeRef) routeRef.off();
+  if(liveRef) liveRef.off();
+  route = []; live = null; delayHistory.length = 0; prevDelay = null;
+  document.getElementById('trainIdLabel').textContent = id;
+  document.getElementById('onTimeBadge').textContent = `📊 ${onTimeStats[id] || 75}% on-time (30d)`;
+
+  routeRef = db.ref(`trains/${id}/route`);
+  routeRef.on('value', s => { route = s.val() || []; render(); });
+
+  liveRef = db.ref(`trains/${id}/live`);
+  liveRef.on('value', s => {
+    live = s.val();
+    const dot = document.getElementById('connStatus');
+    dot.textContent = live ? 'live' : 'no data yet';
+    dot.className = 'status-dot' + (live ? ' live' : '');
+    if(live){
+      delayHistory.push(live.delayMin || 0);
+      if(delayHistory.length > 12) delayHistory.shift();
+      maybeNotify(live.delayMin || 0);
     }
+    render();
+  });
+}
 
-    function trustScoreFor(pingAgeSec, speed) {
-      let score = 100;
-      score -= Math.min(pingAgeSec / 2, 40);
-      if (speed < 5) score -= 5;
-      return Math.max(5, Math.min(100, Math.round(score)));
-    }
+function maybeNotify(delay){
+  if(prevDelay !== null && Math.abs(delay - prevDelay) >= 3 &&
+     document.getElementById('notifyToggle').checked &&
+     "Notification" in window && Notification.permission === "granted"){
+    new Notification(`Train ${trainId} update`, { body: `Delay changed to ${delay} min` });
+  }
+  prevDelay = delay;
+}
 
-    function render() {
-      if (!live || !route.length) return;
+document.getElementById('trainSelect').onchange = e => { trainId = e.target.value; attachListeners(trainId); };
+document.getElementById('coachSelect').onchange = render;
+attachListeners(trainId);
 
-      const eta = computeETA();
-      const delayPill = document.getElementById("delayPill");
-      const nextStationName = document.getElementById("nextStationName");
-      const etaTime = document.getElementById("etaTime");
+function fmtClock(mins){ return new Date(Date.now()+mins*60000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
 
-      if (!eta) {
-        nextStationName.textContent = "Arrived";
-        etaTime.textContent = "—";
-      } else {
-        nextStationName.textContent = eta.nextStationName;
-        etaTime.textContent = fmtClockFromMinutes(eta.etaMin);
-      }
+function computeETA(){
+  if(!live || !route.length) return null;
+  const totalKm = route[route.length-1].distanceKm;
+  const nextIdx = live.currentStationIndex + 1;
+  if(nextIdx >= route.length) return null;
+  const segKm = route[nextIdx].distanceKm - route[live.currentStationIndex].distanceKm;
+  const coveredInSeg = Math.max(0, live.progressKm - route[live.currentStationIndex].distanceKm);
+  const remainingKm = Math.max(segKm - coveredInSeg, 2);
+  const etaMin = (remainingKm / Math.max(live.speedKmh,20)) * 60 + (live.delayMin||0);
+  return { nextIdx, etaMin, totalKm };
+}
+function trustScoreFor(ageSec, speed){
+  let s = 100 - Math.min(ageSec/2,40) - (speed<5?5:0);
+  return Math.max(5, Math.min(100, Math.round(s)));
+}
 
-      const delayMin = Number(live.delayMin || 0);
-      delayPill.textContent = delayMin <= 2 ? "On time" : `+${delayMin} min late`;
-      delayPill.className = "delay-pill " + (delayMin <= 2 ? "delay-ontime" : "delay-late");
+function render(){
+  document.getElementById('coachLabelInline').textContent = document.getElementById('coachSelect').value;
+  renderPlatform();
+  if(!live || !route.length) return;
 
-      const pingAgeSec = Math.max(0, Math.round((Date.now() - Number(live.lastPingTimestamp || Date.now())) / 1000));
-      const trust = trustScoreFor(pingAgeSec, Number(live.speedKmh || 0));
+  const eta = computeETA();
+  const pingAge = Math.round((Date.now()-live.lastPingTimestamp)/1000);
+  const trust = trustScoreFor(pingAge, live.speedKmh);
+  const spread = Math.round((100-trust)/6);
+  const delayMin = live.delayMin || 0;
 
-      document.getElementById("trustScore").textContent = trust;
-      document.getElementById("trustFill").style.width = trust + "%";
-      document.getElementById("trustFill").style.background =
-        trust > 70 ? "var(--green)" : trust > 40 ? "var(--amber)" : "var(--red)";
-      document.getElementById("trustLabel").textContent =
-        trust > 70 ? "high confidence" : trust > 40 ? "moderate" : "low — stale data";
-      document.getElementById("lastPing").textContent = `Last GPS ping: ${pingAgeSec}s ago`;
+  document.getElementById('nextStationName').textContent = eta ? route[eta.nextIdx].name : "Arrived";
+  document.getElementById('etaTime').textContent = !eta ? "—"
+    : spread < 1 ? fmtClock(eta.etaMin)
+    : `${fmtClock(eta.etaMin-spread)} – ${fmtClock(eta.etaMin+spread)}`;
 
-      document.getElementById("speedReadout").textContent = `${Math.round(Number(live.speedKmh || 0))} km/h`;
+  const pill = document.getElementById('delayPill');
+  pill.textContent = delayMin <= 2 ? "On time" : `+${delayMin} min late`;
+  pill.className = "delay-pill " + (delayMin<=2 ? "delay-ontime" : "delay-late");
+  document.getElementById('delayReason').textContent = delayMin>2 ? (live.delayReason||"") : "";
 
-      const totalDistance = Number(route[route.length - 1].distanceKm || 0);
-      const remainingOverall = Math.max(totalDistance - Number(live.progressKm || 0), 0);
-      document.getElementById("distReadout").textContent = `${remainingOverall.toFixed(0)} km to go`;
+  document.getElementById('trustScore').textContent = trust;
+  document.getElementById('trustFill').style.width = trust+"%";
+  document.getElementById('trustFill').style.background = trust>70?'var(--green)':trust>40?'var(--amber)':'var(--red)';
+  document.getElementById('trustLabel').textContent = trust>70?"high confidence":trust>40?"moderate":"low — stale data";
+  document.getElementById('lastPing').textContent = `Last GPS ping: ${pingAge}s ago`;
 
-      document.getElementById("routeList").innerHTML = route.map((stop, i) => {
-        const currentIndex = Number(live.currentStationIndex || 0);
-        const cls = i < currentIndex ? "done" : i === currentIndex ? "current" : "";
-        const timeText = (i === currentIndex + 1 && eta) ? fmtClockFromMinutes(eta.etaMin) : "";
-        return `
-          <div class="stop ${cls}">
-            <span class="stop-name">${stop.name}</span>
-            <span class="stop-time mono">${timeText}</span>
-          </div>
-        `;
-      }).join("");
-    }
+  const maxDelay = Math.max(...delayHistory,1);
+  document.getElementById('sparkline').innerHTML = delayHistory.map(d=>`<div style="height:${Math.max((d/maxDelay)*100,6)}%"></div>`).join('');
 
-    async function loadData() {
-      try {
-        const response = await fetch(dbUrl);
-        if (!response.ok) throw new Error("Firebase fetch failed");
-        const data = await response.json();
+  document.getElementById('routeList').innerHTML = route.map((s,i)=>{
+    const cls = i<live.currentStationIndex?'done':i===live.currentStationIndex?'current':'';
+    const t = (i===live.currentStationIndex+1 && eta) ? fmtClock(eta.etaMin) : '';
+    return `<div class="stop ${cls}"><span class="stop-name">${s.name}</span><span class="stop-time mono">${t}</span></div>`;
+  }).join('');
 
-        route = data.route || [];
-        live = data.live || null;
+  renderJourney(eta);
+  renderFacilities(eta);
+}
 
-        if (live) {
-          setConnStatus("live", true);
-          render();
-        } else {
-          setConnStatus("no data", false);
-        }
-      } catch (err) {
-        console.error(err);
-        setConnStatus("error", false);
-      }
-    }
+function renderJourney(eta){
+  const totalKm = route[route.length-1].distanceKm;
+  const pct = Math.min((live.progressKm/totalKm)*100, 100);
+  const el = document.getElementById('journey');
+  let html = `<div class="journey-line"></div><div class="journey-fill" style="width:${pct}%"></div><div class="journey-dot" style="left:${pct}%"></div>`;
+  route.forEach(s => {
+    const p = (s.distanceKm/totalKm)*100;
+    html += `<div class="journey-pt" style="left:${p}%"></div><div class="journey-lbl" style="left:${p}%">${s.name.split(' ')[0]}</div>`;
+  });
+  el.innerHTML = html;
+}
 
-    setInterval(() => {
-      document.getElementById("clock").textContent = new Date().toLocaleTimeString();
-      if (live) render();
-    }, 1000);
+function renderFacilities(eta){
+  const stationName = eta ? route[eta.nextIdx].name : (route.length?route[route.length-1].name:"—");
+  document.getElementById('facilityStation').textContent = stationName;
+  const f = facilitiesDB[stationName] || facilitiesDB.default;
+  const icons = { food:"🍔 Food", water:"🚰 Water", wheelchair:"♿ Wheelchair access", waiting:"🪑 Waiting room" };
+  document.getElementById('facilitiesList').innerHTML = Object.keys(icons).map(k =>
+    `<div class="facility ${f[k]?'':'na'}">${icons[k]}</div>`
+  ).join('');
+}
 
-    loadData();
-    setInterval(loadData, 4000);
-  </script>
+function renderPlatform(){
+  const mine = document.getElementById('coachSelect').value;
+  document.getElementById('platformCoaches').innerHTML = coachLayout.map((c,i)=>{
+    const pct = 6 + (i/(coachLayout.length-1))*88;
+    return `<div class="coach ${c===mine?'mine':''}" style="left:${pct}%">${c}</div>`;
+  }).join('');
+}
+
+setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleTimeString(); if(live) render(); }, 1000);
+</script>
 </body>
 </html>
