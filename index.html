@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Train ETA Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111b2e;
+      --line: #22314d;
+      --amber: #f5a623;
+      --green: #3ecf8e;
+      --red: #ef5b5b;
+      --text: #e7ecf5;
+      --muted: #8ea0bd;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    .mono { font-family: "Courier New", monospace; }
+
+    header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    .sub { color: var(--muted); font-size: 0.85rem; }
+
+    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 520px) {
+      .grid2 { grid-template-columns: 1fr; }
+    }
+
+    .eta-big {
+      font-size: 2.6rem;
+      font-weight: 700;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+    }
+
+    .delay-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .delay-ontime {
+      background: rgba(62, 207, 142, 0.15);
+      color: var(--green);
+    }
+
+    .delay-late {
+      background: rgba(239, 91, 91, 0.15);
+      color: var(--red);
+    }
+
+    .trust-track {
+      height: 8px;
+      background: var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .trust-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.6s ease, background 0.6s ease;
+    }
+
+    .route {
+      position: relative;
+      padding-left: 26px;
+    }
+
+    .route-line {
+      position: absolute;
+      left: 9px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .stop {
+      position: relative;
+      padding: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stop::before {
+      content: "";
+      position: absolute;
+      left: -26px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--line);
+      border: 2px solid var(--bg);
+    }
+
+    .stop.done::before { background: var(--muted); }
+    .stop.current::before {
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.2);
+    }
+
+    .stop-name { font-weight: 600; font-size: 0.92rem; }
+    .stop-time { color: var(--muted); font-size: 0.8rem; }
+    .stop.current .stop-name { color: var(--amber); }
+
+    .status-dot { color: var(--muted); }
+    .status-dot.live { color: var(--green); }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 10px 0 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1>Train <span id="trainIdLabel">12951</span> — Live ETA</h1>
+      <div class="sub">
+        Firebase-connected ·
+        <span id="connStatus" class="status-dot">connecting…</span>
+      </div>
+    </div>
+    <div class="sub mono" id="clock"></div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid2">
+      <div class="card">
+        <div class="label">Next station: <span id="nextStationName">—</span></div>
+        <div class="eta-big mono" id="etaTime">--:--</div>
+        <div style="margin-top: 8px;">
+          <span class="delay-pill delay-ontime" id="delayPill">On time</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">ETA Trust Score</div>
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <div class="eta-big mono" id="trustScore" style="font-size: 2.1rem;">--</div>
+          <div class="label" style="margin: 0;" id="trustLabel">waiting for data</div>
+        </div>
+        <div class="trust-track">
+          <div class="trust-fill" id="trustFill" style="width: 0%;"></div>
+        </div>
+        <div class="label" style="margin-top: 8px;" id="lastPing">Last GPS ping: —</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label" style="margin-bottom: 10px;">Route progress</div>
+      <div class="route">
+        <div class="route-line"></div>
+        <div id="routeList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">Live status</div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); margin-top: 6px;">
+        <span id="speedReadout" class="mono">0 km/h</span>
+        <span id="distReadout" class="mono">0 km to go</span>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Reads live data from Firebase Realtime Database at
+      <code>trains/&lt;trainId&gt;/live</code>.
+    </div>
+  </div>
+
+  <script>
+    const trainId = "12951";
+    const dbUrl = `https://train-eta-prototype-default-rtdb.asia-southeast1.firebasedatabase.app/trains/${trainId}.json`;
+
+    let route = [];
+    let live = null;
+
+    function setConnStatus(text, liveState) {
+      const el = document.getElementById("connStatus");
+      el.textContent = text;
+      el.className = "status-dot" + (liveState ? " live" : "");
+    }
+
+    function fmtClockFromMinutes(minutes) {
+      const target = new Date(Date.now() + minutes * 60000);
+      return target.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function computeETA() {
+      if (!live || !route.length) return null;
+
+      const currentIndex = Number(live.currentStationIndex || 0);
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex >= route.length) {
+        return null;
+      }
+
+      const currentStation = route[currentIndex];
+      const nextStation = route[nextIndex];
+      const progressKm = Number(live.progressKm || 0);
+      const speedKmh = Number(live.speedKmh || 1);
+      const delayMin = Number(live.delayMin || 0);
+
+      const segmentStartKm = Number(currentStation.distanceKm || 0);
+      const segmentEndKm = Number(nextStation.distanceKm || 0);
+      const coveredInSegment = Math.max(0, progressKm - segmentStartKm);
+      const remainingKm = Math.max(segmentEndKm - progressKm, 0.5);
+
+      const etaMin = (remainingKm / Math.max(speedKmh, 1)) * 60 + delayMin;
+
+      return {
+        nextIndex,
+        nextStationName: nextStation.name,
+        etaMin,
+        remainingKm,
+        totalDistanceKm: Number(route[route.length - 1].distanceKm || 0),
+        progressKm
+      };
+    }
+
+    function trustScoreFor(pingAgeSec, speed) {
+      let score = 100;
+      score -= Math.min(pingAgeSec / 2, 40);
+      if (speed < 5) score -= 5;
+      return Math.max(5, Math.min(100, Math.round(score)));
+    }
+
+    function render() {
+      if (!live || !route.length) return;
+
+      const eta = computeETA();
+      const delayPill = document.getElementById("delayPill");
+      const nextStationName = document.getElementById("nextStationName");
+      const etaTime = document.getElementById("etaTime");
+
+      if (!eta) {
+        nextStationName.textContent = "Arrived";
+        etaTime.textContent = "—";
+      } else {
+        nextStationName.textContent = eta.nextStationName;
+        etaTime.textContent = fmtClockFromMinutes(eta.etaMin);
+      }
+
+      const delayMin = Number(live.delayMin || 0);
+      delayPill.textContent = delayMin <= 2 ? "On time" : `+${delayMin} min late`;
+      delayPill.className = "delay-pill " + (delayMin <= 2 ? "delay-ontime" : "delay-late");
+
+      const pingAgeSec = Math.max(0, Math.round((Date.now() - Number(live.lastPingTimestamp || Date.now())) / 1000));
+      const trust = trustScoreFor(pingAgeSec, Number(live.speedKmh || 0));
+
+      document.getElementById("trustScore").textContent = trust;
+      document.getElementById("trustFill").style.width = trust + "%";
+      document.getElementById("trustFill").style.background =
+        trust > 70 ? "var(--green)" : trust > 40 ? "var(--amber)" : "var(--red)";
+      document.getElementById("trustLabel").textContent =
+        trust > 70 ? "high confidence" : trust > 40 ? "moderate" : "low — stale data";
+      document.getElementById("lastPing").textContent = `Last GPS ping: ${pingAgeSec}s ago`;
+
+      document.getElementById("speedReadout").textContent = `${Math.round(Number(live.speedKmh || 0))} km/h`;
+
+      const totalDistance = Number(route[route.length - 1].distanceKm || 0);
+      const remainingOverall = Math.max(totalDistance - Number(live.progressKm || 0), 0);
+      document.getElementById("distReadout").textContent = `${remainingOverall.toFixed(0)} km to go`;
+
+      document.getElementById("routeList").innerHTML = route.map((stop, i) => {
+        const currentIndex = Number(live.currentStationIndex || 0);
+        const cls = i < currentIndex ? "done" : i === currentIndex ? "current" : "";
+        const timeText = (i === currentIndex + 1 && eta) ? fmtClockFromMinutes(eta.etaMin) : "";
+        return `
+          <div class="stop ${cls}">
+            <span class="stop-name">${stop.name}</span>
+            <span class="stop-time mono">${timeText}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch(dbUrl);
+        if (!response.ok) throw new Error("Firebase fetch failed");
+        const data = await response.json();
+
+        route = data.route || [];
+        live = data.live || null;
+
+        if (live) {
+          setConnStatus("live", true);
+          render();
+        } else {
+          setConnStatus("no data", false);
+        }
+      } catch (err) {
+        console.error(err);
+        setConnStatus("error", false);
+      }
+    }
+
+    setInterval(() => {
+      document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+      if (live) render();
+    }, 1000);
+
+    loadData();
+    setInterval(loadData, 4000);
+  </script>
+</body>
+</html>

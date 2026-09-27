@@ -1,0 +1,16 @@
+{
+  "name": "train-eta-simulator",
+  "version": "1.0.0",
+  "description": "Simulated GPS feed for the Dynamic ETA prototype (SIH)",
+  "main": "simulate-feed.js",
+  "scripts": {
+    "start": "node simulate-feed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
